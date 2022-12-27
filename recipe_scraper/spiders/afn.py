@@ -1,3 +1,4 @@
+import json
 import scrapy
 
 def get_title(response):
@@ -26,14 +27,35 @@ def get_instructions(response):
             for step in instruction.xpath(".//div[@class='cmp-text']//p | .//div[@class='cmp-text']//li")],
     } for instruction in instructions]
 
-def get_recipe(response):
+def get_categories(response):
+    categories = response.css("a.a-category-tag__title")
+    return list(filter(lambda category: category != 'Recipe', [category.css("::text").get() for category in categories]))
+
+def get_overview(response):
+    overview = response.xpath("//div[@class='m-recipe-overview__highlights desktop']//span/text()").getall()
     return {
+        'difficulty': overview[0],
+        'time': {
+            'preparation': overview[1],
+            'cook': overview[2],
+            'cleanup': overview[3],
+        },
+    }
+
+def get_recipe(response):
+    recipe = {
+        # 'id':
         'title': get_title(response),
         'content': get_content(response),
         'image': get_image(response),
         'ingredients': get_ingredients(response),
-        'instructions': get_instructions(response)
+        'instructions': get_instructions(response),
+        'categories': get_categories(response),
+        'overview': get_overview(response),
+        # 'arrange'
     }
+    print(json.dumps(recipe, indent=4))
+    return recipe
 
 class AfnSpider(scrapy.Spider):
     name = 'afn'
@@ -44,6 +66,5 @@ class AfnSpider(scrapy.Spider):
     ]
 
     def parse(self, response):
-        print("\n\n\n\n\n")
         recipe = get_recipe(response)
-        print(recipe)
+        
