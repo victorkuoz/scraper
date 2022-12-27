@@ -17,11 +17,13 @@ def get_ingredients(response):
 def get_instructions(response):
     instructions = response.xpath(
         "//div[@class='o-ordered-listing']/div[@class='cmp-text']//div[@class='m-ordered-listing__item']")
-    # for i in instructions:
-    #     print(i.xpath(".//div[@class='cmp-text']/*").get())
+    # for instruction in instructions:
+    #     for step in instruction.xpath(".//div[@class='cmp-text']//p | .//div[@class='cmp-text']//li"):
+    #         print (step.css("::text").get() + (step.xpath("./i/text()").get() if step.xpath("./i") else ""))
     return [{
         'title': instruction.xpath(".//h3/text()").get(),
-        # 'content': [step.get() for step in instruction.xpath(".//div[@class='cmp-text']/*/text()")],
+        'content': [step.css("::text").get() + (step.xpath("./i/text()").get() if step.xpath("./i") else "")
+            for step in instruction.xpath(".//div[@class='cmp-text']//p | .//div[@class='cmp-text']//li")],
     } for instruction in instructions]
 
 def get_recipe(response):
