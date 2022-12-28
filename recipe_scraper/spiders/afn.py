@@ -1,5 +1,13 @@
 import json
 import scrapy
+from shutil import which
+from selenium import webdriver
+# from scrapy_selenium import SeleniumRequest
+
+def chrome_driver():
+    options = webdriver.ChromeOptions()
+    options.set_headless()  # options.add_argument('--headless')
+    return webdriver.Chrome(executable_path=which('chromedriver'), chrome_options=options)
 
 class RecipeGetter():
     def get(self, response):
@@ -59,8 +67,8 @@ class RecipeGetter():
 class AfnSpider(scrapy.Spider):
     allowed_domains = ['www.asianfoodnetwork.com']
     base_url = "https://asianfoodnetwork.com"
+    driver = chrome_driver()
     name = 'afn'
-    start_urls = []
 
     # unnecessary
     '''
@@ -70,13 +78,10 @@ class AfnSpider(scrapy.Spider):
 
     # overrided
     def start_requests(self):
-        # print("start_requests")
-
         yield scrapy.Request(
             url=self.base_url+"/en/recipes/cuisine/chinese/chinese-style-scrambled-eggs-with-tomato.html", callback=self.parse_recipe)
 
-        # genres = ["cuisine", "ingredients", "special-diets"]
-        yield scrapy.Request(url=self.base_url+"/en/recipes/cuisine.html", callback=self.parse_region)
+        # yield scrapy.SeleniumRequest(url=self.base_url+"/en/recipes/cuisine.html", callback=self.parse_region)
 
     # deprecated
     '''
@@ -85,11 +90,15 @@ class AfnSpider(scrapy.Spider):
     '''
 
     def parse_recipe(self, response):
-        # print("parse_recipe")
         recipe = RecipeGetter().get(response)
         print(json.dumps(recipe, indent=4))
 
     def parse_region(self, response):
-        # print("parse_region")
-        regions = [str[len("/en/recipes/cuisine/"):-len(".html")] for str in response.css("a.a-linked-image").xpath("@href").getall()]
-        print(regions)
+        regions = response.css("a.a-linked-image").xpath("@href").getall()
+        print([str[len("/en/recipes/cuisine/"):-len(".html")] for str in response.css("a.a-linked-image").xpath("@href").getall()])
+
+        yield scrapy.SeleniumRequest(url=self.base_url+regions[0], callback=self.parse_page, dont_filter=True)
+
+    def parse_page(self, response):
+        button = response.xpath("//button[contains(text(), 'Show More')]").getall()
+        print(button)
