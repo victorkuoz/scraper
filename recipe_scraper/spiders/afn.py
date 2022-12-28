@@ -2,23 +2,18 @@ import json
 import scrapy
 
 class RecipeGetter():
-    def __init__(self):
-        pass
-    
     def get(self, response):
-        recipe = {
+        return {
             # 'id':
             'title': self.get_title(response),
             'content': self.get_content(response),
             'image': self.get_image(response),
             'ingredients': self.get_ingredients(response),
             'instructions': self.get_instructions(response),
-            'categories': self.get_categories(response),
+            'tags': self.get_tags(response),
             'overview': self.get_overview(response),
             # 'arrange'
         }
-        print(json.dumps(recipe, indent=4))
-        return recipe
 
     def get_title(self, response):
         return response.css("h2.cmp-title__text::text").get()
@@ -46,7 +41,7 @@ class RecipeGetter():
                 for step in instruction.xpath(".//div[@class='cmp-text']//p | .//div[@class='cmp-text']//li")],
         } for instruction in instructions]
 
-    def get_categories(self, response):
+    def get_tags(self, response):
         categories = response.css("a.a-category-tag__title")
         return list(filter(lambda category: category != 'Recipe', [category.css("::text").get() for category in categories]))
 
@@ -62,15 +57,39 @@ class RecipeGetter():
         }
 
 class AfnSpider(scrapy.Spider):
-    name = 'afn'
     allowed_domains = ['www.asianfoodnetwork.com']
-    # start_urls = ['http://www.asianfoodnetwork.com/']
-    start_urls = [
-        "https://asianfoodnetwork.com/en/recipes/cuisine/chinese/chinese-style-scrambled-eggs-with-tomato.html",
-    ]
-    # recipe_getter = RecipeGetter()
+    base_url = "https://asianfoodnetwork.com"
+    name = 'afn'
+    start_urls = []
 
+    # unnecessary
+    '''
+    def __init__(self, name=None, **kwargs):
+        super().__init__(name, **kwargs)
+    '''
+
+    # overrided
+    def start_requests(self):
+        # print("start_requests")
+
+        yield scrapy.Request(
+            url=self.base_url+"/en/recipes/cuisine/chinese/chinese-style-scrambled-eggs-with-tomato.html", callback=self.parse_recipe)
+
+        # genres = ["cuisine", "ingredients", "special-diets"]
+        yield scrapy.Request(url=self.base_url+"/en/recipes/cuisine.html", callback=self.parse_region)
+
+    # deprecated
+    '''
     def parse(self, response):
-        recipe_getter = RecipeGetter()
-        recipe = recipe_getter.get(response)
-        
+        pass
+    '''
+
+    def parse_recipe(self, response):
+        # print("parse_recipe")
+        recipe = RecipeGetter().get(response)
+        print(json.dumps(recipe, indent=4))
+
+    def parse_region(self, response):
+        # print("parse_region")
+        regions = [str[len("/en/recipes/cuisine/"):-len(".html")] for str in response.css("a.a-linked-image").xpath("@href").getall()]
+        print(regions)
