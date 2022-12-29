@@ -2,8 +2,5 @@ BOT_NAME = 'recipe_scraper'
 SPIDER_MODULES = ['recipe_scraper.spiders']
 NEWSPIDER_MODULE = 'recipe_scraper.spiders'
 
-# Obey robots.txt rules
 ROBOTSTXT_OBEY = False
-
-# Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = 'Mozilla/5.0 (X11; CrOS i686 4319.74.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36'

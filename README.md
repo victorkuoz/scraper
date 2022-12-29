@@ -1,13 +1,14 @@
 # scraper
 
-### run
+## scrapy
+### usage
 ```
 git clone https://github.com/victorkuoz/scraper.git
 cd scraper
 scrapy crawl afn
 ```
 
-### example recipe output
+### example output
 - https://asianfoodnetwork.com/en/recipes/cuisine/thai/thai-twist-onsen-eggs.html
 ```
 {
@@ -66,4 +67,30 @@ scrapy crawl afn
         }
     }
 }
+```
+
+## extractor
+### raw tags
+```
+['Thai', 'Egg', 'Rice', 'Seafood', 'Under 30 mins', 'Sweet and sour', 'Easy', 'Prawn', 'Noodles', 'Savory', 'Snacks', 'Chicken', 'Fish', 'Spicy', 'Vegetables', 'Garlic', 'Pork', 'Sweet', 'Medium', 'Coconut milk', 'Salad', 'Soybean', 'Galangal', 'Flour', 'Butter', 'Dessert', 'Lunch', 'Beef', 'Sour', 'Dinner', 'Fruity', 'Appetizers', 'Chinese', 'Bitter Melon', 'Hard', 'Low Carb', 'Vietnamese', 'Under 60 mins', 'Breakfast', 'Halal', 'Chilli', 'Under 45 mins', 'Above 60 mins', 'Cheese', 'Article', 'Video', 'Mushroom', 'Japanese', 'Pasta', 'Fruits', 'Milk', 'Nuts', 'Tofu', 'Zucchini', 'Vegetarian', 'Series', 'Keto', 'Mala', 'Middle-Eastern', 'Hari Raya', 'Sweet Potato', 'Indian', 'Special Diets Keto', 'Alcoholic', 'Chocolate', 'Chinese New Year', 'Avocado', 'Potatoes', 'Under 15 mins', 'Baked Goods', 'Bread', 'Vegan', 'Special Diets Gluten Free', 'Ingredients', 'Singaporean', 'Salted Egg', 'Lamb', 'Malaysian', 'Minced', 'Korean', 'Indonesian', 'Nonya', 'Kale', 'Malaysia', 'Gula Melaka', 'Ramadan', 'Pandan', 'Mid-Autumn Festival', 'Duck', 'Greens', 'Traditional', 'Yam', 'Rambutan', 'Chicken liver', 'Drinks', 'Jackfruit', 'Honey', 'Salted Fish', 'Tempeh', 'Coconut', 'Singapore', 'Cauliflower', 'How To', 'Matthias Rhoads', 'Cake', 'Cookies', 'Pudding', 'Philippines', 'Filipino', 'Gluten-free', 'Special Diets Low Carb', 'Brunch', 'Main Dish', 'Peanut', 'Kimchi', 'Mexican', 'Christmas', 'Flourless']
+```
+
+### raw ingredients
+- (keyword, number of appearance)
+```
+('g', 7687)
+('tbsp', 2240)
+('tsp', 1943)
+('ml', 1659)
+('water', 1090)
+('oil', 1081)
+.
+.
+.
+('oelek', 1)
+('Julienne', 1)
+('sizes', 1)
+('elephant', 1)
+('paddy', 1)
+('corianders', 1)
 ```

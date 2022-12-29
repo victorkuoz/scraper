@@ -1,4 +1,4 @@
-import datetime
+# import datetime
 import json
 import scrapy
 import uuid
@@ -62,7 +62,7 @@ class AfnSpider(scrapy.Spider):
     # init
     name = 'afn'
     recipe_getter = RecipeGetter()
-    fp = open(f"./recipes.json", "w")
+    fp = open(f"./recipe_scraper/export/recipes.json", "w")
     # fp = open(f"./recipe_scraper/export/{datetime.date.today()}.json", "w")
     base_url = 'https://asianfoodnetwork.com'
     extensions = set()
