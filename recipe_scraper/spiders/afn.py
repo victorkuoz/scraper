@@ -1,12 +1,13 @@
 import datetime
 import json
 import scrapy
+import uuid
 from scrapy_selenium import SeleniumRequest
 
 class RecipeGetter():
     def get(self, response):
         return {
-            # 'id':
+            'id': uuid.uuid1().hex,
             'title': self.get_title(response),
             'content': self.get_content(response),
             'image': self.get_image(response),
@@ -57,54 +58,71 @@ class RecipeGetter():
             },
         }
 
-# global
-base_url = 'https://asianfoodnetwork.com'
-extensions = set()
-fp = open(f"./recipe_scraper/export/{datetime.date.today()}.json", "w")
-threshold = 3
-
 class AfnSpider(scrapy.Spider):
-    # /en/recipes/cuisine/chinese/chinese-style-scrambled-eggs-with-tomato.html
+    # init
     name = 'afn'
+    recipe_getter = RecipeGetter()
+    fp = open(f"./recipe_scraper/export/{datetime.date.today()}.json", "w")
+    # fp = open(f"./recipe_scraper/export/cuisine.json", "w")
+    base_url = 'https://asianfoodnetwork.com'
+    extensions = set()
+    start_extensions = [
+        # not work
+        '/en/recipes/cuisine/thai/thai-twist-onsen-eggs.html',
+
+        # work
+        '/en/recipes/ingredients/chicken/rice-cooker-chicken.html',
+        # '/en/recipes/ingredients/vegetables/green-goddess-vegetable-pilaf.html',
+        # '/en/recipes/ingredients/zucchini/zucchini-chips-with-nacho-dip.html',
+        # '/en/recipes/ingredients/seafood/easy-to-cook-delicious-seafood-cheese-baked-rice.html',
+        # '/en/recipes/ingredients/salted-egg/salted-egg-kale-chips.html',
+        # '/en/recipes/ingredients/beef/curry-beef-cheesy-tacos.html',
+        # '/en/recipes/ingredients/fish/pan-fried-red-tilapia-with-tomato-and-gac-fruit-sauce.html',
+
+        # '/en/recipes/cuisine/korean/kimchi-grilled-cheese.html',
+        # '/en/recipes/cuisine/malaysian/Mango-Yoghurt-Curry.html',
+        # '/en/recipes/cuisine/peranakan/chicken-pongteh.html',
+        # '/en/recipes/cuisine/chinese/white-seafood-lor-mee.html',
+        # '/en/recipes/cuisine/indonesian/garang-asem.html',
+        # '/en/recipes/cuisine/singaporean/vegetarian-peranakan-laksa.html',
+        # '/en/recipes/cuisine/indian/vegetarian-briyani.html',
+        # '/en/recipes/cuisine/japanese/takoyaki.html',
+        # '/en/recipes/cuisine/asian-desserts/old-fashioned-donut-rings.html',
+        # '/en/recipes/cuisine/filipino/Pork-Pata-Kare-Kare.html',
+        # '/en/recipes/cuisine/vietnamese/vietnamese-fresh-spring-rolls.html',
+    ]
 
     # override
     def start_requests(self):
-        fp.write('[')
-        extension = '/en/recipes/cuisine/chinese/white-seafood-lor-mee.html'
-        yield SeleniumRequest(url=(base_url + extension), meta={'cnt': 0}, callback=self.parse_recipe, dont_filter=True)
+        self.fp.write('[')
+        yield SeleniumRequest(url=f'{self.base_url}{self.start_extensions[0]}', meta={'handle_httpstatus_all': True}, dont_filter=True)
 
-    # self-define
-    def parse_recipe(self, response):
-        print(response.meta['cnt'])
-        if response.meta['cnt'] < threshold:
-            extension = response.url[len(base_url):]
-            if extension not in extensions:
-                recipe = RecipeGetter().get(response)
-                fp.write(f"{',' if len(extensions) else ''}")
-                json.dump(recipe, fp, indent=4) # print(json.dumps(recipe, indent=4))
-                extensions.add(extension)
-            else:
-                print(f'Hit {response.url[len(base_url):]}')
+    def parse(self, response):
+        OK, extension = response.status in [200], response.url[len(self.base_url):]
+        if OK and extension not in self.extensions:
+            recipe = self.recipe_getter.get(response)
 
+            self.fp.write(f"{',' if len(self.extensions) else ''}")
+            json.dump(recipe, self.fp, indent=4)
+
+            self.extensions.add(extension)
             extension = response.xpath("//div[@class='col-md-6 col-6 m-default-pagination-img__next p-0']//a/@href").get()
-            if not extension:
-                print('No next page')
-            else: 
-                yield SeleniumRequest(url=(base_url + extension),
-                    meta={'cnt': response.meta['cnt'] + 1}, callback=self.parse_recipe, dont_filter=True)
         else:
-            fp.write(']')
-            fp.close()
+            if OK:
+                print(f'Hit {extension}')
+            self.start_extensions.pop(0)
+            if len(self.start_extensions):
+                extension = self.start_extensions[0]
+            else:
+                self.fp.write(']')
+                self.fp.close()
+                return
+        yield SeleniumRequest(url=f'{self.base_url}{extension}', meta={'handle_httpstatus_all': True}, dont_filter=True)
 
-    def parse_region(self, response):
-        # regions = response.css("a.a-linked-image").xpath("@href").getall()
-        regions = [str[len("/en/recipes/cuisine/"):-len(".html")] for str in response.css("a.a-linked-image").xpath("@href").getall()]
-        print(regions)
-    
-    # # unnecessary
     # def __init__(self, name=None, **kwargs):
     #     super().__init__(name, **kwargs)
 
-    # # deprecate
-    # def parse(self, response):
-    #     pass
+    # def parse_region(self, response):
+    #     # regions = response.css("a.a-linked-image").xpath("@href").getall()
+    #     regions = [str[len("/en/recipes/cuisine/"):-len(".html")] for str in response.css("a.a-linked-image").xpath("@href").getall()]
+    #     print(regions)
