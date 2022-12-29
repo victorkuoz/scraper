@@ -1,13 +1,7 @@
+import datetime
 import json
 import scrapy
-from shutil import which
-from selenium import webdriver
-# from scrapy_selenium import SeleniumRequest
-
-def chrome_driver():
-    options = webdriver.ChromeOptions()
-    options.set_headless()  # options.add_argument('--headless')
-    return webdriver.Chrome(executable_path=which('chromedriver'), chrome_options=options)
+from scrapy_selenium import SeleniumRequest
 
 class RecipeGetter():
     def get(self, response):
@@ -41,12 +35,11 @@ class RecipeGetter():
         instructions = response.xpath(
             "//div[@class='o-ordered-listing']/div[@class='cmp-text']//div[@class='m-ordered-listing__item']")
         # for instruction in instructions:
-        #     for step in instruction.xpath(".//div[@class='cmp-text']//p | .//div[@class='cmp-text']//li"):
-        #         print (step.css("::text").get() + (step.xpath("./i/text()").get() if step.xpath("./i") else ""))
+        #     for step in filter(lambda step: step != "\n", instruction.xpath(".//div[@class='cmp-text']//text()").getall()):
+        #         print(step)
         return [{
             'title': instruction.xpath(".//h3/text()").get(),
-            'content': [step.css("::text").get() + (step.xpath("./i/text()").get() if step.xpath("./i") else "")
-                for step in instruction.xpath(".//div[@class='cmp-text']//p | .//div[@class='cmp-text']//li")],
+            'content': [step for step in filter(lambda step: step != "\n", instruction.xpath(".//div[@class='cmp-text']//text()").getall())],
         } for instruction in instructions]
 
     def get_tags(self, response):
@@ -64,41 +57,54 @@ class RecipeGetter():
             },
         }
 
+# global
+base_url = 'https://asianfoodnetwork.com'
+extensions = set()
+fp = open(f"./recipe_scraper/export/{datetime.date.today()}.json", "w")
+threshold = 3
+
 class AfnSpider(scrapy.Spider):
-    allowed_domains = ['www.asianfoodnetwork.com']
-    base_url = "https://asianfoodnetwork.com"
-    driver = chrome_driver()
+    # /en/recipes/cuisine/chinese/chinese-style-scrambled-eggs-with-tomato.html
     name = 'afn'
 
-    # unnecessary
-    '''
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name, **kwargs)
-    '''
-
-    # overrided
+    # override
     def start_requests(self):
-        yield scrapy.Request(
-            url=self.base_url+"/en/recipes/cuisine/chinese/chinese-style-scrambled-eggs-with-tomato.html", callback=self.parse_recipe)
+        fp.write('[')
+        extension = '/en/recipes/cuisine/chinese/white-seafood-lor-mee.html'
+        yield SeleniumRequest(url=(base_url + extension), meta={'cnt': 0}, callback=self.parse_recipe, dont_filter=True)
 
-        # yield scrapy.SeleniumRequest(url=self.base_url+"/en/recipes/cuisine.html", callback=self.parse_region)
-
-    # deprecated
-    '''
-    def parse(self, response):
-        pass
-    '''
-
+    # self-define
     def parse_recipe(self, response):
-        recipe = RecipeGetter().get(response)
-        print(json.dumps(recipe, indent=4))
+        print(response.meta['cnt'])
+        if response.meta['cnt'] < threshold:
+            extension = response.url[len(base_url):]
+            if extension not in extensions:
+                recipe = RecipeGetter().get(response)
+                fp.write(f"{',' if len(extensions) else ''}")
+                json.dump(recipe, fp, indent=4) # print(json.dumps(recipe, indent=4))
+                extensions.add(extension)
+            else:
+                print(f'Hit {response.url[len(base_url):]}')
+
+            extension = response.xpath("//div[@class='col-md-6 col-6 m-default-pagination-img__next p-0']//a/@href").get()
+            if not extension:
+                print('No next page')
+            else: 
+                yield SeleniumRequest(url=(base_url + extension),
+                    meta={'cnt': response.meta['cnt'] + 1}, callback=self.parse_recipe, dont_filter=True)
+        else:
+            fp.write(']')
+            fp.close()
 
     def parse_region(self, response):
-        regions = response.css("a.a-linked-image").xpath("@href").getall()
-        print([str[len("/en/recipes/cuisine/"):-len(".html")] for str in response.css("a.a-linked-image").xpath("@href").getall()])
+        # regions = response.css("a.a-linked-image").xpath("@href").getall()
+        regions = [str[len("/en/recipes/cuisine/"):-len(".html")] for str in response.css("a.a-linked-image").xpath("@href").getall()]
+        print(regions)
+    
+    # # unnecessary
+    # def __init__(self, name=None, **kwargs):
+    #     super().__init__(name, **kwargs)
 
-        yield scrapy.SeleniumRequest(url=self.base_url+regions[0], callback=self.parse_page, dont_filter=True)
-
-    def parse_page(self, response):
-        button = response.xpath("//button[contains(text(), 'Show More')]").getall()
-        print(button)
+    # # deprecate
+    # def parse(self, response):
+    #     pass
