@@ -1,4 +1,4 @@
-# import datetime
+# import datetime # debug
 import json
 import scrapy
 import uuid
@@ -10,12 +10,12 @@ class RecipeGetter():
             'id': uuid.uuid1().hex,
             'title': self.get_title(response),
             'content': self.get_content(response),
-            'image': self.get_image(response),
+            'image_url': self.get_image_url(response),
             'ingredients': self.get_ingredients(response),
             'instructions': self.get_instructions(response),
             'tags': self.get_tags(response),
-            'overview': self.get_overview(response),
-            # 'arrange'
+            'difficulty': self.get_difficulty(response),
+            'time': self.get_time(response),
         }
 
     def get_title(self, response):
@@ -24,7 +24,7 @@ class RecipeGetter():
     def get_content(self, response):
         return response.css("div.m-content__copy").css("span::text").get()
 
-    def get_image(self, response):
+    def get_image_url(self, response):
         return response.css("div.m-recipe-arrange").css("div.cmp-image").css("img").xpath("@data-src").get()
 
     def get_ingredients(self, response):
@@ -47,24 +47,25 @@ class RecipeGetter():
         categories = response.css("a.a-category-tag__title")
         return list(filter(lambda category: category != 'Recipe', [category.css("::text").get() for category in categories]))
 
-    def get_overview(self, response):
+    def get_difficulty(self, response):
+        return response.xpath("//div[@class='m-recipe-overview__highlights desktop']//span/text()").getall()[0]
+
+    def get_time(self, response):
         overview = response.xpath("//div[@class='m-recipe-overview__highlights desktop']//span/text()").getall()
         return {
-            'difficulty': overview[0],
-            'time': {
-                'preparation': overview[1],
-                'cook': overview[2],
-                'cleanup': overview[3],
-            },
+            'preparation': overview[1],
+            'cook': overview[2],
+            'cleanup': overview[3],
         }
 
 class AfnSpider(scrapy.Spider):
     # init
     name = 'afn'
     recipe_getter = RecipeGetter()
-    fp = open(f"./recipe_scraper/export/recipes.json", "w")
-    # fp = open(f"./recipe_scraper/export/{datetime.date.today()}.json", "w")
-    base_url = 'https://asianfoodnetwork.com'
+    path2dir = './recipe_scraper/export'
+    fp = open(f"{path2dir}/recipes.json", "w")
+    # fp = open(f"{path2dir}/{datetime.date.today()}.json", "w") # debug
+    url = 'https://asianfoodnetwork.com'
     extensions = set()
     start_extensions = [
         # with http error
@@ -95,10 +96,10 @@ class AfnSpider(scrapy.Spider):
     # override
     def start_requests(self):
         self.fp.write('[')
-        yield SeleniumRequest(url=f'{self.base_url}{self.start_extensions[0]}', meta={'handle_httpstatus_all': True}, dont_filter=True)
+        yield SeleniumRequest(url=f'{self.url}{self.start_extensions[0]}', meta={'handle_httpstatus_all': True}, dont_filter=True)
 
     def parse(self, response):
-        OK, extension = response.status in [200], response.url[len(self.base_url):]
+        OK, extension = response.status in [200], response.url[len(self.url):]
         if OK and extension not in self.extensions:
             recipe = self.recipe_getter.get(response)
 
@@ -117,10 +118,7 @@ class AfnSpider(scrapy.Spider):
                 self.fp.write(']')
                 self.fp.close()
                 return
-        yield SeleniumRequest(url=f'{self.base_url}{extension}', meta={'handle_httpstatus_all': True}, dont_filter=True)
-
-    # def __init__(self, name=None, **kwargs):
-    #     super().__init__(name, **kwargs)
+        yield SeleniumRequest(url=f'{self.url}{extension}', meta={'handle_httpstatus_all': True}, dont_filter=True)
 
     # def parse_region(self, response):
     #     # regions = response.css("a.a-linked-image").xpath("@href").getall()
