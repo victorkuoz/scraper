@@ -14,7 +14,7 @@ class RecipeGetter():
             'ingredients': self.get_ingredients(response),
             'instructions': self.get_instructions(response),
             'tags': self.get_tags(response),
-            'difficulty': self.get_difficulty(response),
+            # 'difficulty': self.get_difficulty(response),
             'time': self.get_time(response),
         }
 
@@ -44,11 +44,13 @@ class RecipeGetter():
         } for instruction in instructions]
 
     def get_tags(self, response):
+        difficulty = self.get_difficulty(response)
         categories = response.css("a.a-category-tag__title")
-        return list(filter(lambda category: category != 'Recipe', [category.css("::text").get() for category in categories]))
+        return list(filter(lambda category: category not in ['Recipe'] + difficulty,
+            [category.css("::text").get() for category in categories])) + difficulty
 
     def get_difficulty(self, response):
-        return response.xpath("//div[@class='m-recipe-overview__highlights desktop']//span/text()").getall()[0]
+        return [response.xpath("//div[@class='m-recipe-overview__highlights desktop']//span/text()").getall()[0]]
 
     def get_time(self, response):
         overview = response.xpath("//div[@class='m-recipe-overview__highlights desktop']//span/text()").getall()
@@ -63,7 +65,7 @@ class AfnSpider(scrapy.Spider):
     name = 'afn'
     recipe_getter = RecipeGetter()
     path2dir = './recipe_scraper/export'
-    fp = open(f"{path2dir}/recipes.json", "w")
+    fp = open(f"{path2dir}/recipe.json", "w")
     # fp = open(f"{path2dir}/{datetime.date.today()}.json", "w") # debug
     url = 'https://asianfoodnetwork.com'
     extensions = set()

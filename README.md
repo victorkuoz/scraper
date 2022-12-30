@@ -11,7 +11,8 @@ scrapy crawl afn
 ### example output
 - https://asianfoodnetwork.com/en/recipes/cuisine/thai/thai-twist-onsen-eggs.html
 ```
-"id": "908b26ac87ef11eda55847b92c10f584",
+{
+    "id": "a9208d2a886b11eda55847b92c10f584",
     "title": "Thai Twist Onsen Eggs",
     "content": "We all know the flavourful shoyu-based onsen tamago, but here\u2019s one perfumed with heady Thai flavours of sprity lemongrass and gingery galangal, crisp fried shallots, Thai chillies and coriander. Salty fish sauce, lightly sweetened with earthy palm sugar forms the broth of this refreshing infusion and pulls the whole thing together. Our way of eating it? Slice the soft-boiled egg in half and first plop in the jammy yolk, tongue down for a creamy mouthfeel, then sip on the broth and repeat for the other half \u2013 this way you get to taste this twice! ",
     "image_url": "https://asianfoodnetwork.com/content/dam/afn/global/en/recipes/thai-twist-onsen-egg/Thai_Twist_Onsen_Tamago_Sauce_article_1920x1280_7.jpg.transform/recipestep-img/img.jpg",
@@ -55,9 +56,9 @@ scrapy crawl afn
     ],
     "tags": [
         "Thai",
-        "Egg"
+        "Egg",
+        "Easy"
     ],
-    "difficulty": "Easy",
     "time": {
         "preparation": "5 min",
         "cook": "30 min",
