@@ -56,7 +56,6 @@ scrapy crawl afn
     ],
     "tags": [
         "Thai",
-        "Egg",
         "Easy"
     ],
     "time": {
@@ -65,16 +64,4 @@ scrapy crawl afn
         "cleanup": "5 min"
     }
 }
-```
-
-## extractor
-### raw tags
-```
-('Easy', 786), ('Vegetables', 532), ('Indonesian', 463), ('Above 60 mins', 373), ('Dessert', 359), ..., ('Brunch', 1), ('Peanut', 1), ('Kimchi', 1), ('Mexican', 1), ('Flourless', 1)
-```
-
-### raw ingredients
-- (keyword, # of appearance)
-```
-('g', 7688), ('tbsp', 2255), ('tsp', 1949), ('ml', 1680), ('salt', 1261), ..., ('oelek', 1), ('sizes', 1), ('elephant', 1), ('paddy', 1), ('corianders', 1)
 ```

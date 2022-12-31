@@ -4,6 +4,35 @@ import scrapy
 import uuid
 from scrapy_selenium import SeleniumRequest
 
+valid_tags = [
+    # region
+    "Indonesian", "Chinese", "Filipino", "Indian", "Malaysian", "Thai", "Korean", "Japanese", "Singaporean", "Vietnamese", "Peranakan", "Middle-Eastern",
+
+    # difficulty
+    "Easy", "Medium", "Hard",
+
+    # time
+    "Above 60 mins", "Under 30 mins", "Under 45 mins", "Under 60 mins", "Under 15 mins"
+
+    # meal
+    "Lunch", "Dinner", "Breakfast", "Appetizers"
+
+    # non_meal
+    "Dessert", "Snacks", "Drinks", "Baked Goods", "Bread", "Salad", "Cake", "Cookies",
+
+    # diet
+    "Halal", "Vegetarian", "Keto", "Nonya", "Vegan", "Low Carb", "Greens", "Traditional", "Alcoholic",
+
+    # flavor
+    "Savory", "Spicy", "Sweet", "Fruity", "Sour", "Sweet and sour", "Mala",
+
+    # holiday
+    "Chinese New Year", "Hari Raya", "Ramadan", "Mid-Autumn Festival", "Christmas"
+
+    # invalid
+    "Malaysia", "Special Diets Keto"
+]
+
 class RecipeGetter():
     def get(self, response):
         return {
@@ -40,14 +69,17 @@ class RecipeGetter():
         #         print(step)
         return [{
             'title': instruction.xpath(".//h3/text()").get(),
-            'content': [step for step in filter(lambda step: step != "\n", instruction.xpath(".//div[@class='cmp-text']//text()").getall())],
+            'contents': [step for step in filter(lambda step: step != "\n", instruction.xpath(".//div[@class='cmp-text']//text()").getall())],
         } for instruction in instructions]
 
     def get_tags(self, response):
         difficulty = self.get_difficulty(response)
         categories = response.css("a.a-category-tag__title")
-        return list(filter(lambda category: category not in ['Recipe'] + difficulty,
+        tags = list(filter(lambda tag: tag in valid_tags and tag not in difficulty,
             [category.css("::text").get() for category in categories])) + difficulty
+        return ['Malaysian' if tag == 'Malaysia' else tag for tag in
+                ['Keto' if tag == 'Special Diets Keto' else tag for tag in tags]]
+        
 
     def get_difficulty(self, response):
         return [response.xpath("//div[@class='m-recipe-overview__highlights desktop']//span/text()").getall()[0]]
@@ -65,7 +97,7 @@ class AfnSpider(scrapy.Spider):
     name = 'afn'
     recipe_getter = RecipeGetter()
     path2dir = './recipe_scraper/export'
-    fp = open(f"{path2dir}/recipe.json", "w")
+    fp = open(f"{path2dir}/recipes.js", "w")
     # fp = open(f"{path2dir}/{datetime.date.today()}.json", "w") # debug
     url = 'https://asianfoodnetwork.com'
     extensions = set()
@@ -97,7 +129,7 @@ class AfnSpider(scrapy.Spider):
 
     # override
     def start_requests(self):
-        self.fp.write('[')
+        self.fp.write('export const recipes = \n[')
         yield SeleniumRequest(url=f'{self.url}{self.start_extensions[0]}', meta={'handle_httpstatus_all': True}, dont_filter=True)
 
     def parse(self, response):
@@ -105,7 +137,7 @@ class AfnSpider(scrapy.Spider):
         if OK and extension not in self.extensions:
             recipe = self.recipe_getter.get(response)
 
-            self.fp.write(f"{',' if len(self.extensions) else ''}")
+            self.fp.write(',\n' if len(self.extensions) else '')
             json.dump(recipe, self.fp, indent=4)
 
             self.extensions.add(extension)
