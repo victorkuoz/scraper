@@ -164,7 +164,7 @@ class AfnSpider(scrapy.Spider):
             if len(self.start_extensions):
                 extension = self.start_extensions[0]
             else:
-                self.fp.write('];\nexport default recipes;')
+                self.fp.write('];\n\nexport default recipes;')
                 self.recipe_getter.warning()
                 self.fp.close()
                 return
