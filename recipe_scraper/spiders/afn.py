@@ -2,7 +2,6 @@
 import json
 import scrapy
 import uuid
-from scrapy_selenium import SeleniumRequest
 
 valid_tags = [
     # region
@@ -34,16 +33,29 @@ valid_tags = [
 ]
 
 class RecipeGetter():
+    def __init__(self):
+        self.start = self.end = uuid.uuid1().hex
+        self.ids = [uuid.uuid1().hex, uuid.uuid1().hex, self.start]
+
+    def warning(self):
+        print(f'\n"next" of the last recipe should be changed to {self.start}')
+        print(f'"prev" of the first recipe should be changed to {self.end}\n')
+    
     def get(self, response):
+        self.ids.pop(0)
+        self.ids.append(uuid.uuid1().hex)
+        self.end = self.ids[1]
+
         return {
-            'id': uuid.uuid1().hex,
+            'prev': self.ids[0],
+            'id': self.end,
+            'next': self.ids[2],
             'title': self.get_title(response),
             'content': self.get_content(response),
             'image_url': self.get_image_url(response),
             'ingredients': self.get_ingredients(response),
             'instructions': self.get_instructions(response),
             'tags': self.get_tags(response),
-            # 'difficulty': self.get_difficulty(response),
             'time': self.get_time(response),
         }
 
@@ -59,7 +71,10 @@ class RecipeGetter():
     def get_ingredients(self, response):
         # serving_size = response.css("div.m-recipeDetailList").css("li.m-recipeDetailList__item").css("strong::text").get()
         ingredients = response.css("div.m-recipeDetailList").css("li.m-recipeDetailList__item").css("p")
-        return [i.css("::text").get() + (i.css("i::text").get() if i.css("i::text") else "") for i in ingredients]
+        return [{
+            'content': i.css("::text").get() + (i.css("i::text").get() if i.css("i::text") else ""),
+            'match': False,
+        } for i in ingredients]
 
     def get_instructions(self, response):
         instructions = response.xpath(
@@ -106,31 +121,31 @@ class AfnSpider(scrapy.Spider):
         '/en/recipes/cuisine/thai/thai-twist-onsen-eggs.html',
 
         # without http error
-        '/en/recipes/ingredients/chicken/rice-cooker-chicken.html',
-        '/en/recipes/ingredients/vegetables/green-goddess-vegetable-pilaf.html',
-        '/en/recipes/ingredients/zucchini/zucchini-chips-with-nacho-dip.html',
-        '/en/recipes/ingredients/seafood/easy-to-cook-delicious-seafood-cheese-baked-rice.html',
-        '/en/recipes/ingredients/salted-egg/salted-egg-kale-chips.html',
-        '/en/recipes/ingredients/beef/curry-beef-cheesy-tacos.html',
-        '/en/recipes/ingredients/fish/pan-fried-red-tilapia-with-tomato-and-gac-fruit-sauce.html',
+        # '/en/recipes/ingredients/chicken/rice-cooker-chicken.html',
+        # '/en/recipes/ingredients/vegetables/green-goddess-vegetable-pilaf.html',
+        # '/en/recipes/ingredients/zucchini/zucchini-chips-with-nacho-dip.html',
+        # '/en/recipes/ingredients/seafood/easy-to-cook-delicious-seafood-cheese-baked-rice.html',
+        # '/en/recipes/ingredients/salted-egg/salted-egg-kale-chips.html',
+        # '/en/recipes/ingredients/beef/curry-beef-cheesy-tacos.html',
+        # '/en/recipes/ingredients/fish/pan-fried-red-tilapia-with-tomato-and-gac-fruit-sauce.html',
 
-        '/en/recipes/cuisine/korean/kimchi-grilled-cheese.html',
-        '/en/recipes/cuisine/malaysian/Mango-Yoghurt-Curry.html',
-        '/en/recipes/cuisine/peranakan/chicken-pongteh.html',
-        '/en/recipes/cuisine/chinese/white-seafood-lor-mee.html',
-        '/en/recipes/cuisine/indonesian/garang-asem.html',
-        '/en/recipes/cuisine/singaporean/vegetarian-peranakan-laksa.html',
-        '/en/recipes/cuisine/indian/vegetarian-briyani.html',
-        '/en/recipes/cuisine/japanese/takoyaki.html',
-        '/en/recipes/cuisine/asian-desserts/old-fashioned-donut-rings.html',
-        '/en/recipes/cuisine/filipino/Pork-Pata-Kare-Kare.html',
-        '/en/recipes/cuisine/vietnamese/vietnamese-fresh-spring-rolls.html',
+        # '/en/recipes/cuisine/korean/kimchi-grilled-cheese.html',
+        # '/en/recipes/cuisine/malaysian/Mango-Yoghurt-Curry.html',
+        # '/en/recipes/cuisine/peranakan/chicken-pongteh.html',
+        # '/en/recipes/cuisine/chinese/white-seafood-lor-mee.html',
+        # '/en/recipes/cuisine/indonesian/garang-asem.html',
+        # '/en/recipes/cuisine/singaporean/vegetarian-peranakan-laksa.html',
+        # '/en/recipes/cuisine/indian/vegetarian-briyani.html',
+        # '/en/recipes/cuisine/japanese/takoyaki.html',
+        # '/en/recipes/cuisine/asian-desserts/old-fashioned-donut-rings.html',
+        # '/en/recipes/cuisine/filipino/Pork-Pata-Kare-Kare.html',
+        # '/en/recipes/cuisine/vietnamese/vietnamese-fresh-spring-rolls.html',
     ]
 
     # override
     def start_requests(self):
-        self.fp.write('export const recipes = \n[')
-        yield SeleniumRequest(url=f'{self.url}{self.start_extensions[0]}', meta={'handle_httpstatus_all': True}, dont_filter=True)
+        self.fp.write('const recipes = [\n')
+        yield scrapy.Request(url=f'{self.url}{self.start_extensions[0]}', meta={'handle_httpstatus_all': True}, dont_filter=True)
 
     def parse(self, response):
         OK, extension = response.status in [200], response.url[len(self.url):]
@@ -149,10 +164,11 @@ class AfnSpider(scrapy.Spider):
             if len(self.start_extensions):
                 extension = self.start_extensions[0]
             else:
-                self.fp.write(']')
+                self.fp.write('];\nexport default recipes;')
+                self.recipe_getter.warning()
                 self.fp.close()
                 return
-        yield SeleniumRequest(url=f'{self.url}{extension}', meta={'handle_httpstatus_all': True}, dont_filter=True)
+        yield scrapy.Request(url=f'{self.url}{extension}', meta={'handle_httpstatus_all': True}, dont_filter=True)
 
     # def parse_region(self, response):
     #     # regions = response.css("a.a-linked-image").xpath("@href").getall()
